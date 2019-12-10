@@ -127,7 +127,7 @@ void applyBCscalarDensN(FPinterp*** scalarN, grid* grd, parameters* param){
 
 /** Apply BC to scalar interp quantity defined on nodes - Interpolation quantity */
 void applyBCscalarFieldN(FPfield*** scalarN, grid* grd, parameters* param){
-    
+    // **UNUSED**
     
     ///////////////////////
     ///
@@ -252,7 +252,7 @@ void applyBCscalarFieldN(FPfield*** scalarN, grid* grd, parameters* param){
 
 /** Apply BC to scalar interp quantity defined on nodes - Interpolation quantity */
 void applyBCscalarFieldNzero(FPfield*** scalarN, grid* grd, parameters* param){
-    
+     // **UNUSED**
     
     ///////////////////////
     ///
@@ -662,7 +662,7 @@ void applyBCids(struct interpDensSpecies* ids, struct grid* grd, struct paramete
 
 /** Apply BC to scalar interp quantity defined on nodes - Interpolation quantity */
 void applyBCscalarDensC(FPinterp*** scalarC, grid* grd, parameters* param){
-    
+    // **UNUSED**
     
     ///////////////////////
     ///
@@ -786,6 +786,8 @@ void applyBCscalarDensC(FPinterp*** scalarC, grid* grd, parameters* param){
 
 /** Apply BC to scalar field quantity defined on center - Interpolation quantity */
 void applyBCscalarFieldC(FPfield*** scalarC, grid* grd, parameters* param){
+    // **UNUSED**
+
     ///////////////////////
     ///
     ///    FACE
@@ -910,7 +912,8 @@ void applyBCscalarFieldC(FPfield*** scalarC, grid* grd, parameters* param){
 /** Apply BC to scalar field quantity defined on nodes - Interpolation quantity */
 // set to zero ghost cell
 void applyBCscalarFieldCzero(FPfield*** scalarC, grid* grd, parameters* param){
-    
+    // **UNUSED**
+
     ///////////////////////
     ///
     ///    FACE

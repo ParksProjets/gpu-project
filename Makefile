@@ -1,38 +1,39 @@
-# From https://x.momo86.net/?p=29
+# File configuration.
+SRCDIR ?= src
+OBJDIR ?= obj
+BINDIR ?= bin
+TARGET = sputniPIC.out
 
-CXX=g++
-CXXFLAGS=-std=c++11 -I./include -O3 -g -Xcompiler -Wall
+# GNU and CUDA tools.
+CXX = g++
+CXXFLAGS = -std=c++11 -I./include -O3 -g -Xcompiler -Wall
 
-NVCC=nvcc
-ARCH=sm_30
-NVCCFLAGS= -I./include -arch=$(ARCH) -std=c++11 -O3 -g -Xcompiler -Wall --compiler-bindir=$(CXX)
+NVCC = nvcc
+ARCH = sm_30
+NVCCFLAGS = -I./include -arch=$(ARCH) -std=c++11 -O3 -g -Xcompiler -Wall --compiler-bindir=$(CXX)
 
-SRCDIR=src
-SRCS=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
+# Find source files and map to objects.
+SRCS = $(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
+OBJS := $(subst $(SRCDIR),$(OBJDIR),$(SRCS))
+OBJS := $(subst .cpp,.o,$(OBJS))
+OBJS := $(subst .cu,.o,$(OBJS))
 
-OBJDIR=src
-OBJS=$(subst $(SRCDIR),$(OBJDIR), $(SRCS))
-OBJS:=$(subst .cpp,.o,$(OBJS))
-OBJS:=$(subst .cu,.o,$(OBJS))
+# Makefile targets.
+.PHONY: all clean
+all: $(BINDIR)/$(TARGET)
 
-BIN := ./bin
-TARGET=sputniPIC.out
+$(BINDIR):
+	mkdir -p $(BINDIR)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-all: dir $(BIN)/$(TARGET)
-
-dir: ${BIN}
-  
-${BIN}:
-	mkdir -p $(BIN)
-
-$(BIN)/$(TARGET): $(OBJS)
+$(BINDIR)/$(TARGET): $(OBJS) | $(BINDIR)
 	$(NVCC) $(NVCCFLAGS) $+ -o $@
 
-$(SRCDIR)/%.o: $(SRCDIR)/%.cu
+$(OBJDIR)/%.o: $(SRCDIR)/%.cu
 	$(NVCC) $(NVCCFLAGS) $< -c -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	[ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	$(NVCC) $(CXXFLAGS) $< -c -o $@
 
 clean:

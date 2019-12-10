@@ -95,9 +95,7 @@ int main(int argc, char **argv){
         for (int is=0; is < param.ns; is++)
             mover_PC(&part[is],&field,&grd,&param);
         eMover += (cpuSecond() - iMover); // stop timer for mover
-        
-        
-        
+
         
         // interpolation particle to grid
         iInterp = cpuSecond(); // start timer for the interpolation step
@@ -112,10 +110,9 @@ int main(int argc, char **argv){
         // interpolate charge density from center to node
         applyBCscalarDensN(idn.rhon,&grd,&param);
         
-        
-        
+
         // write E, B, rho to disk
-        if (cycle%param.FieldOutputCycle==0){
+        if (cycle % param.FieldOutputCycle==0){
             VTK_Write_Vectors(cycle, &grd,&field);
             VTK_Write_Scalars(cycle, &grd,ids,&idn);
         }
