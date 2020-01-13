@@ -36,7 +36,7 @@ static void CudaAllocateAndCopy(void *dest, const void *src, long long size)
 // Write a pointer in the CUDA memory.
 static void CudaWritePointer(void *dest, const void *src)
 {
-    CUDA_CHECK(cudaMemcpy(&gGpuPart[is].x, &ptr, sizeof(void *), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(dest, &src, sizeof(void *), cudaMemcpyHostToDevice));
 }
 
 
@@ -106,12 +106,6 @@ void particle_allocate(struct parameters* param, struct particles* part, int is)
 void particle_deallocate(struct particles* part)
 {
     delete[] part->x;
-    delete[] part->y;
-    delete[] part->z;
-    delete[] part->u;
-    delete[] part->v;
-    delete[] part->w;
-    delete[] part->q;
 }
 
 
@@ -338,8 +332,6 @@ int mover_PC(struct particles *part, int is, struct parameters *param)
     int num_blocks = (part->nop + BLOCK_SIZE - 1) / BLOCK_SIZE;
     kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], gGpuField, gGpuGrid, gGpuParam);
     cudaDeviceSynchronize();  // Make sure the particules were updated.
-
-DEBUG;
 
     // Copy particules back to CPU.
     CUDA_CHECK(cudaMemcpy(part->x, part->GPU_array, PARRSZ * part->npmax, cudaMemcpyDeviceToHost));
