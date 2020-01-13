@@ -15,15 +15,17 @@
 
 
 // Pointer allocated to be used by the CPU.
-void *gGpuGrid, *gGpuParam;
-void *gGpuField, *gGpuPart;
+struct grid *gGpuGrid;
+struct parameters *gGpuParam;
+struct EMfield *gGpuField;
+struct particles *gGpuPart;
 
 
 // Allocate and copy data to the GPU.
-static void CudaAllocateAndCopy(void **dest, void *src, int size)
+static void CudaAllocateAndCopy(void **dest, void *src, long long size)
 {
-    CUDA_CHECK(cudaMalloc(dest, size);
-    CUDA_CHECK(cudaMemcpy(*dest, grd->XN_flat, src, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMalloc(dest, size));
+    CUDA_CHECK(cudaMemcpy(*dest, src, size, cudaMemcpyHostToDevice));
 }
 
 
@@ -119,28 +121,28 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     CUDA_CHECK(cudaMalloc(&gGpuGrid, sizeof(grid)));
     CUDA_CHECK(cudaMemcpy(gGpuGrid, grd, sizeof(grid), cudaMemcpyHostToDevice));
 
-    CudaAllocateAndCopy(&gGpuGrid->XN_flat, grd->XN_flat, size);
-    CudaAllocateAndCopy(&gGpuGrid->YN_flat, grd->YN_flat, size);
-    CudaAllocateAndCopy(&gGpuGrid->ZN_flat, grd->ZN_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuGrid->XN_flat, grd->XN_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuGrid->YN_flat, grd->YN_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuGrid->ZN_flat, grd->ZN_flat, size);
 
 
     // Copy the field to the GPU.
     CUDA_CHECK(cudaMalloc(&gGpuField, sizeof(EMfield)));
     CUDA_CHECK(cudaMemcpy(gGpuField, field, sizeof(EMfield), cudaMemcpyHostToDevice));
 
-    CudaAllocateAndCopy(&gGpuField->Ex_flat, field->Ex_flat, size);
-    CudaAllocateAndCopy(&gGpuField->Ey_flat, field->Ey_flat, size);
-    CudaAllocateAndCopy(&gGpuField->Ez_flat, field->Ez_flat, size);
-    CudaAllocateAndCopy(&gGpuField->Bxn_flat, field->Bxn_flat, size);
-    CudaAllocateAndCopy(&gGpuField->Byn_flat, field->Byn_flat, size);
-    CudaAllocateAndCopy(&gGpuField->Bzn_flat, field->Bzn_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Ex_flat, field->Ex_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Ey_flat, field->Ey_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Ez_flat, field->Ez_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Bxn_flat, field->Bxn_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Byn_flat, field->Byn_flat, size);
+    CudaAllocateAndCopy((void **)&gGpuField->Bzn_flat, field->Bzn_flat, size);
 
 
     // Allocate and copy particules array.
-    CUDA_CHECK(cudaMalloc(&gGpuPart, sizeof(particles) * param.ns));
-    CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param.ns), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMalloc(&gGpuPart, sizeof(particles) * param->ns));
+    CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param->ns, cudaMemcpyHostToDevice));
 
-    for (int is = 0; is < param.ns; is++)
+    for (int is = 0; is < param->ns; is++)
         CUDA_CHECK(cudaMalloc(&gGpuPart[is].x, PARRSZ * part[is].npmax));
 }
 
@@ -305,7 +307,7 @@ __global__ void kernel_mover_PC(particles* part, EMfield* field, grid* grd, para
 
 /// Particle mover (CPU part that launch the GPU kernel).
 /// -----------------------------------------------------
-int mover_PC(struct particles* part, int is)
+int mover_PC(struct particles *part, int is, struct parameters *param)
 {
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
 
@@ -318,7 +320,7 @@ int mover_PC(struct particles* part, int is)
     cudaDeviceSynchronize();  // Make sure the particules were updated.
 
     // Copy particules back to CPU.
-    CUDA_CHECK(cudaMemcpy(part->x, gGpuPart[is].x, PARRSZ * part->npmax, cudaMemcpyDeviceTOHost));
+    CUDA_CHECK(cudaMemcpy(part->x, gGpuPart[is].x, PARRSZ * part->npmax, cudaMemcpyDeviceToHost));
 
     return 0;
 }
