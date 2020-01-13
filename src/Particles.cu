@@ -319,8 +319,6 @@ int mover_PC(struct particles *part, int is, struct parameters *param)
     // Copy particules to GPU.
     CUDA_CHECK(cudaMemcpy(part->GPU_array, part->x, PARRSZ * part->npmax, cudaMemcpyHostToDevice));
 
-DEBUG;
-
     // Move each particle with new fields.
     int num_blocks = (part->nop + BLOCK_SIZE - 1) / BLOCK_SIZE;
     kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], gGpuField, gGpuGrid, gGpuParam);
