@@ -42,7 +42,9 @@ struct particles {
     /* drift and thermal velocities for this species */
     FPpart u0, v0, w0;
     FPpart uth, vth, wth;
-    
+
+    /** Array on GPU */
+    void *GPU_array;
     /** particle arrays: 1D arrays[npmax] */
     FPpart* x; FPpart*  y; FPpart* z; FPpart* u; FPpart* v; FPpart* w;
     /** q must have precision of interpolated quantities: typically double. Not used in mover */
