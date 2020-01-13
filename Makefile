@@ -27,7 +27,7 @@ $(BINDIR):
 	mkdir -p $(BINDIR)
 $(OBJDIR):
 	mkdir -p $(OBJDIR)
-$(DATADIR)
+$(DATADIR):
 	mkdir -p $(DATADIR)
 
 $(BINDIR)/$(TARGET): $(OBJS) | $(BINDIR)
