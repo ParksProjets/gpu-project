@@ -5,8 +5,10 @@
 
 
 // Check if the given command has returned an error.
-#define CUDA_CHECK(cmd) if ((cmd) != cudaSuccess) { \
-    printf("ERROR: cuda error at line %s:%d\n", __FILE__, __LINE__); abort(); }
+// #define CUDA_CHECK(cmd) if ((cmd) != cudaSuccess) { \
+//     printf("ERROR: cuda error at %s:%d\n", __FILE__, __LINE__); abort(); }
+
+#define CUDA_CHECK(cmd) cmd
 
 
 // Constants.

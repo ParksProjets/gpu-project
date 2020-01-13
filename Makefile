@@ -6,11 +6,11 @@ DATADIR ?= data
 TARGET = sputniPIC.out
 
 # GNU and CUDA tools.
-CXX = g++
-CXXFLAGS = -std=c++11 -I./include -O3 -g -Xcompiler -Wall
+CXX ?= g++
+CXXFLAGS ?= -std=c++11 -I./include -O3 -g -Xcompiler -Wall
 
-NVCC = nvcc
-ARCH = sm_37
+NVCC ?= nvcc
+ARCH ?= sm_37
 NVCCFLAGS = -I./include -arch=$(ARCH) -std=c++11 -O3 -g -Xcompiler -Wall --compiler-bindir=$(CXX)
 
 # Find source files and map to objects.
@@ -44,4 +44,4 @@ run: $(BINDIR)/$(TARGET) | $(DATADIR)
 
 clean:
 	rm -rf $(OBJS)
-	rm -rf $(TARGET)
+	rm $(BINDIR)/$(TARGET)
