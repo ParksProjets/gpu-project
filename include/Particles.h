@@ -44,7 +44,7 @@ struct particles {
     FPpart uth, vth, wth;
 
     /** Array on GPU */
-    void *GPU_array;
+    FPpart *GPU_array;
     /** particle arrays: 1D arrays[npmax] */
     FPpart* x; FPpart*  y; FPpart* z; FPpart* u; FPpart* v; FPpart* w;
     /** q must have precision of interpolated quantities: typically double. Not used in mover */

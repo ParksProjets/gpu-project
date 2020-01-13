@@ -33,6 +33,13 @@ static void CudaAllocateAndCopy(void *dest, const void *src, long long size)
 }
 
 
+// Write a pointer in the CUDA memory.
+static void CudaWritePointer(void *dest, const void *src)
+{
+    CUDA_CHECK(cudaMemcpy(&gGpuPart[is].x, &ptr, sizeof(void *), cudaMemcpyHostToDevice));
+}
+
+
 
 /// Allocate particle arrays
 /// ------------------------
@@ -146,8 +153,16 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param->ns, cudaMemcpyHostToDevice));
 
     for (int is = 0; is < param->ns; is++) {
-        CUDA_CHECK(cudaMalloc(&part[is].GPU_array, PARRSZ * part[is].npmax));
-        CUDA_CHECK(cudaMemcpy(&gGpuPart[is].x, &part[is].GPU_array, sizeof(void *), cudaMemcpyHostToDevice));
+        auto nmax = part[is].npmax;
+        CUDA_CHECK(cudaMalloc(&part[is].GPU_array, PARRSZ * nmax));
+
+        CudaWritePointer(&gGpuPart[is].x, part[is].GPU_array + (nmax * 0));
+        CudaWritePointer(&gGpuPart[is].y, part[is].GPU_array + (nmax * 1));
+        CudaWritePointer(&gGpuPart[is].z, part[is].GPU_array + (nmax * 2));
+        CudaWritePointer(&gGpuPart[is].u, part[is].GPU_array + (nmax * 3));
+        CudaWritePointer(&gGpuPart[is].v, part[is].GPU_array + (nmax * 4));
+        CudaWritePointer(&gGpuPart[is].w, part[is].GPU_array + (nmax * 5));
+        CudaWritePointer(&gGpuPart[is].q, part[is].GPU_array + (nmax * 6));
     }
 }
 
