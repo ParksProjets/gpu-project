@@ -24,7 +24,8 @@ inline long get_idx(long x, long y, long z, long stride_y, long stride_z)
 __host__ __device__
 inline long get_idx(long x, long y, long s1)
 {
-    return x + (y * s1);
+    // return x + (y * s1);
+    return (s1 * x) + y;  // FIXED.
 }
 
 
