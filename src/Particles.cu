@@ -5,10 +5,8 @@
 
 
 // Check if the given command has returned an error.
-// #define CUDA_CHECK(cmd) if ((cmd) != cudaSuccess) { \
-//     printf("ERROR: cuda error at %s:%d\n", __FILE__, __LINE__); abort(); }
-
-#define CUDA_CHECK(cmd) cmd
+#define CUDA_CHECK(cmd) if ((cmd) != cudaSuccess) { \
+    printf("ERROR: cuda error at %s:%d\n", __FILE__, __LINE__); abort(); }
 
 
 // Constants.
@@ -60,8 +58,6 @@ void particle_allocate(struct parameters* param, struct particles* part, int is)
     // Cast it to required precision.
     part->qom = (FPpart) param->qom[is];
     
-    long npmax = part->npmax;
-
     // Initialize drift and thermal velocities drift.
     part->u0 = (FPpart) param->u0[is];
     part->v0 = (FPpart) param->v0[is];
@@ -75,7 +71,10 @@ void particle_allocate(struct parameters* param, struct particles* part, int is)
     // /!\ W A R N I N G
     // The following code assumes that FPpart == FPinterp
 
+    std::cout << "OK" << is << std::endl;
+
     // Use only one array so we only need one copy.
+    auto npmax = part->npmax;
     FPpart *array = new FPpart[npmax * 7];
 
     part->x = array + (npmax * 0);
@@ -112,6 +111,8 @@ void particle_deallocate(struct particles* part)
 /// -------------------
 void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *field)
 {
+    std::cout << "***  INIT GPU DATA ***" << std::endl;
+
     // Allocate and copy parameters to the GPU.
     CUDA_CHECK(cudaMalloc(&gGpuParam, sizeof(parameters)));
     CUDA_CHECK(cudaMemcpy(gGpuParam, param, sizeof(parameters), cudaMemcpyHostToDevice));
