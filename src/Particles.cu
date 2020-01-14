@@ -23,7 +23,7 @@ static_assert(sizeof(FPpart) == sizeof(FPinterp));
 
 // The maximum GPU memory that can be used for particules. Set to 0 for the
 // maximum phisical limit.
-#define GPU_MEM_PART  (4 * 1024 * 1024)  // 1GB
+#define GPU_MEM_PART  (2 * 1024 * 1024)  // 2GB
 
 
 // Pointer allocated to be used by the CPU.
@@ -188,8 +188,8 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     // GPU memory can be limited by developer.
     if (GPU_MEM_PART != 0)
         free_size = GPU_MEM_PART;
-
-    free_size -= 1024;  // Make sure there is space for aligment.
+    else
+        free_size -= 1024;  // Make sure there is space for aligment.
 
     size_t maxp = std::min(free_size / PARRSZ, MaxNumberParticules(part, param));
     std::cout << "++ Max number of particles on GPU = " << (free_size / PARRSZ) << std::endl;
