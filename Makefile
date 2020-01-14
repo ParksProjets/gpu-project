@@ -21,7 +21,7 @@ OBJS := $(subst .cu,.o,$(OBJS))
 
 
 # Makefile targets.
-.PHONY: all run clean
+.PHONY: all run benchmark clean
 all: $(BINDIR)/$(TARGET)
 
 
@@ -45,6 +45,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 
 run: $(BINDIR)/$(TARGET) | $(DATADIR)
 	$< inputfiles/GEM_2D.inp
+
+benchmark: $(BINDIR)/$(TARGET) | $(DATADIR)
+	python3 benchmark.py
 
 clean:
 	rm -rf $(OBJS)

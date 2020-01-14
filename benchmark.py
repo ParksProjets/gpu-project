@@ -28,19 +28,25 @@ def run_sputniPIC(here, file):
 
     print("\n------------------------------------")
     print("|| RUNNING SPUTNIPIC ON %s" % path.basename(file))
-    print("------------------------------------\n")
+    print("------------------------------------\n", flush=True)
 
     prog = path.join(here, "bin", "sputniPIC.out")
     ps = sp.Popen([prog, file], stdout=sp.PIPE)
     out, _ = ps.communicate()
 
     text = out.decode()
-    return [
+    results = [
         find_result(text, RE_NOP, int),
         find_result(text, RE_SIMTOT, float),
         find_result(text, RE_MOVT, float),
         find_result(text, RE_INTERT, float)
     ]
+
+    print("    Number of particuls = %s" % results[0])
+    print("    Tot. Simulation Time (s) = %s" % results[1])
+    print("------------------------------------\n", flush=True)
+
+    return results
 
 
 def main():
@@ -48,6 +54,7 @@ def main():
 
     here = path.abspath(path.dirname(__file__))
     files = glob.glob(path.join(here, "inputfiles", "Bench*.inp"))
+    files.sort()
 
     with open("results.csv", "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
