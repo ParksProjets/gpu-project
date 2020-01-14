@@ -183,7 +183,7 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
 
     free_size -= 1024;  // Make sure there is space for aligment.
     size_t maxp = std::min(free_size / PARRSZ, MaxNumberParticules(part, param));
-    std::cout << "Max number of particles on GPU = " << maxp << std::endl;
+    std::cout << "++ Max number of particles on GPU = " << (free_size / PARRSZ) << std::endl;
 
     // Allocate particle array and fill structure with pointers.
     FPpart *array;
@@ -193,6 +193,7 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     for (int is = 0; is < param->ns; is++) {
         part[is].gpu_npmax = std::min((size_t)part[is].nop, maxp);
         part[is].GPU_array = array;
+        std::cout << "     --> Species " << is << " needs " << (part[is].nop / maxp + 1) << " batches" << std::endl;
 
         CudaWritePointer(&gGpuPart[is].x, array + (maxp * 0));
         CudaWritePointer(&gGpuPart[is].y, array + (maxp * 1));
@@ -202,6 +203,8 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
         CudaWritePointer(&gGpuPart[is].w, array + (maxp * 5));
         CudaWritePointer(&gGpuPart[is].q, array + (maxp * 6));
     }
+
+    std::cout << std::endl;
 }
 
 
@@ -490,7 +493,8 @@ void mover_PC(particles *part, int is, parameters *param)
     int num_blocks = (part->gpu_npmax + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
     // Move each particle with new fields (using mini-batches).
-    for (size_t offset = 0; offset < part->nop; offset += part->gpu_npmax) {
+    for (size_t offset = 0; offset < (size_t)part->nop; offset += part->gpu_npmax) {
+        std::cout << "   ---- Batch " << (offset / part->gpu_npmax) << std::endl;
         CopyParticlesToDevice(part, param, offset);
 
         kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(offset, &gGpuPart[is], gGpuField, gGpuGrid, gGpuParam);
@@ -523,7 +527,7 @@ void interpP2G(particles* part, interpDensSpecies* ids, int is, grid* grd, param
     CUDA_CHECK(cudaMemcpy(ids->pzz_GPU, ids->pzz_flat, size, cudaMemcpyHostToDevice));
 
     // Interpolate each particle (using mini-batches).
-    for (size_t offset = 0; offset < part->nop; offset += part->gpu_npmax) {
+    for (size_t offset = 0; offset < (size_t)part->nop; offset += part->gpu_npmax) {
         CopyParticlesToDevice(part, param, offset);
 
         kernel_interpP2G<<<num_blocks, BLOCK_SIZE>>>(offset, &gGpuPart[is], &gGpuIDS[is], gGpuGrid);

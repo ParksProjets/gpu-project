@@ -73,7 +73,7 @@ inline size_t MaxNumberParticules(struct particles *part, struct parameters *par
 {
     size_t max = 0;
     for (int is = 0; is < param->ns; is++) {
-        if (part[is].npmax > max)
+        if ((size_t)part[is].npmax > max)
             max = part[is].npmax;
     }
 
