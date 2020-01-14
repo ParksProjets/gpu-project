@@ -21,9 +21,9 @@ static_assert(sizeof(FPpart) == sizeof(FPinterp));
 #define BLOCK_SIZE 32
 #define PARRSZ (sizeof(FPpart) * 7)
 
-// The maximum GPU memory that can be used. Note that this number must not be
-// too small. Set to 0 for the phisical limit.
-#define LIMIT_GPU_MEM  (4 * 1024 * 1024)  // 4GB
+// The maximum GPU memory that can be used for particules. Set to 0 for the
+// maximum phisical limit.
+#define GPU_MEM_PART  (4 * 1024 * 1024)  // 1GB
 
 
 // Pointer allocated to be used by the CPU.
@@ -186,8 +186,8 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     CUDA_CHECK(cudaMemGetInfo(&free_size, &total_size));
 
     // GPU memory can be limited by developer.
-    if (LIMIT_GPU_MEM != 0)
-        free_size = LIMIT_GPU_MEM - (total_size - free_size);
+    if (GPU_MEM_PART != 0)
+        free_size = GPU_MEM_PART;
 
     free_size -= 1024;  // Make sure there is space for aligment.
 
@@ -202,7 +202,9 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     for (int is = 0; is < param->ns; is++) {
         part[is].gpu_npmax = std::min((size_t)part[is].nop, maxp);
         part[is].GPU_array = array;
-        std::cout << "     --> Species " << is << " needs " << (part[is].nop / maxp + 1) << " batches" << std::endl;
+
+        int batches = ((part[is].nop + maxp - 1) / maxp);
+        std::cout << "     --> Species " << is << " needs " << batches << " batches" << std::endl;
 
         CudaWritePointer(&gGpuPart[is].x, array + (maxp * 0));
         CudaWritePointer(&gGpuPart[is].y, array + (maxp * 1));
