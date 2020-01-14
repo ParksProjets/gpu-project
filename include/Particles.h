@@ -11,7 +11,6 @@
 #include "InterpDensSpecies.h"
 
 struct particles {
-    
     /** species ID: 0, 1, 2 , ... */
     int species_ID;
     
@@ -19,12 +18,13 @@ struct particles {
     long npmax;
     /** number of particles of this species on this domain */
     long nop;
+    /** maximum number of particles for a single batch */
+    long gpu_npmax;
     
     /** Electron and ions have different number of iterations: ions moves slower than ions */
     int NiterMover;
     /** number of particle of subcycles in the mover */
     int n_sub_cycles;
-    
     
     /** number of particles per cell */
     int npcel;
@@ -34,7 +34,6 @@ struct particles {
     int npcely;
     /** number of particles per cell - Z direction */
     int npcelz;
-    
     
     /** charge over mass ratio */
     FPpart qom;
@@ -66,5 +65,18 @@ void mover_PC(struct particles*, int is, struct parameters*);
 
 /** Interpolation Particle --> Grid: This is for species */
 void interpP2G(struct particles*, struct interpDensSpecies*, int is, struct grid*);
+
+
+// Find the maximum number of particles for a single species.
+inline long MaxNumberParticules(struct particles *part, struct parameters *param)
+{
+    long max = 0;
+    for (int is = 0; is < param->ns; is++) {
+        if (part[is].npmax > max)
+            max = part[is].npmax;
+    }
+
+    return max;
+}
 
 #endif

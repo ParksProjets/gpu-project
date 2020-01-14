@@ -2,6 +2,7 @@
 #include "Alloc.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <algorithm>
 
 
 // Check if the given command has returned an error.
@@ -175,17 +176,31 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     CUDA_CHECK(cudaMalloc(&gGpuPart, sizeof(particles) * param->ns));
     CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param->ns, cudaMemcpyHostToDevice));
 
-    for (int is = 0; is < param->ns; is++) {
-        auto nmax = part[is].npmax;
-        CUDA_CHECK(cudaMalloc(&part[is].GPU_array, PARRSZ * nmax));
+    // Get memory info: we can use it to know how many particles fit to GPU
+    // memory.
+    size_t free_size, total_size;
+    CUDA_CHECK(cudaMemGetInfo(&free_size, &total_size));
 
-        CudaWritePointer(&gGpuPart[is].x, part[is].GPU_array + (nmax * 0));
-        CudaWritePointer(&gGpuPart[is].y, part[is].GPU_array + (nmax * 1));
-        CudaWritePointer(&gGpuPart[is].z, part[is].GPU_array + (nmax * 2));
-        CudaWritePointer(&gGpuPart[is].u, part[is].GPU_array + (nmax * 3));
-        CudaWritePointer(&gGpuPart[is].v, part[is].GPU_array + (nmax * 4));
-        CudaWritePointer(&gGpuPart[is].w, part[is].GPU_array + (nmax * 5));
-        CudaWritePointer(&gGpuPart[is].q, part[is].GPU_array + (nmax * 6));
+    free_size -= 1024;  // Make sure there is space for aligment.
+    size_t maxp = std::min(free_size / PARRSZ, MaxNumberParticules(part, param));
+    std::cout << "Max number of particles on GPU = " << maxp << std::endl;
+
+    // Allocate particle array and fill structure with pointers.
+    FPpart *array;
+    param->gpu_npmax = maxp;
+    CUDA_CHECK(cudaMalloc(&array, PARRSZ * maxp));
+
+    for (int is = 0; is < param->ns; is++) {
+        part[is].gpu_npmax = std::min(part[is].nop, maxp);
+        part[is].GPU_array = array;
+
+        CudaWritePointer(&gGpuPart[is].x, array + (maxp * 0));
+        CudaWritePointer(&gGpuPart[is].y, array + (maxp * 1));
+        CudaWritePointer(&gGpuPart[is].z, array + (maxp * 2));
+        CudaWritePointer(&gGpuPart[is].u, array + (maxp * 3));
+        CudaWritePointer(&gGpuPart[is].v, array + (maxp * 4));
+        CudaWritePointer(&gGpuPart[is].w, array + (maxp * 5));
+        CudaWritePointer(&gGpuPart[is].q, array + (maxp * 6));
     }
 }
 
@@ -193,11 +208,11 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
 
 /// Particle mover (GPU kernel).
 /// -----------------------------
-__global__ void kernel_mover_PC(particles* part, EMfield* field, grid* grd, parameters* param)
+__global__ void kernel_mover_PC(long offset, particles* part, EMfield* field, grid* grd, parameters* param)
 {
     // Index of the particle that is being updated.
-    auto i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i >= part->nop)
+    auto i = blockDim.x * blockIdx.x + threadIdx.x - offset;
+    if (i >= part->gpu_npmax)
         return;
 
     // Auxiliary variables.
@@ -349,11 +364,11 @@ __global__ void kernel_mover_PC(particles* part, EMfield* field, grid* grd, para
 
 /// Interpolation Particle --> Grid: This is for species (GPU kernel).
 /// ------------------------------------------------------------------
-__global__ void kernel_interpP2G(particles *part, GPU_interpDensSpecies *ids, grid *grd)
+__global__ void kernel_interpP2G(long offset, particles *part, GPU_interpDensSpecies *ids, grid *grd)
 {
     // Index of the particle that is being updated.
-    auto i = blockDim.x * blockIdx.x + threadIdx.x;
-    if (i >= part->nop)
+    auto i = blockDim.x * blockIdx.x + threadIdx.x - offset;
+    if (i >= part->gpu_npmax)
         return;
 
     // Local variables.
@@ -429,22 +444,60 @@ __global__ void kernel_interpP2G(particles *part, GPU_interpDensSpecies *ids, gr
 
 
 
+/// Copy particules to the GPU for a batch.
+/// ---------------------------------------
+static void CopyParticlesToDevice(particles *part, parameters *param, long offset)
+{
+    long maxp = param->gpu_npmax;
+    long count = std::min(maxp, part->nop - offset);  // Do not copy to much memory on last batch.
+    long size = count * sizeof(FPpart);
+
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 0), part->x + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 1), part->y + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 2), part->z + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 3), part->u + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 4), part->v + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 5), part->w + offset, size, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(part->GPU_array + (maxp * 6), part->q + offset, size, cudaMemcpyHostToDevice));
+}
+
+
+
+/// Copy particules back to the CPU for a batch.
+/// --------------------------------------------
+static void CopyParticlesToHost(particles *part, parameters *param, long offset)
+{
+    long maxp = param->gpu_npmax;
+    long count = std::min(maxp, part->nop - offset);  // Do not copy to much memory on last batch.
+    long size = count * sizeof(FPpart);
+
+    CUDA_CHECK(cudaMemcpy(part->x + offset, part->GPU_array + (maxp * 0), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->y + offset, part->GPU_array + (maxp * 1), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->z + offset, part->GPU_array + (maxp * 2), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->u + offset, part->GPU_array + (maxp * 3), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->v + offset, part->GPU_array + (maxp * 4), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->w + offset, part->GPU_array + (maxp * 5), size, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(part->q + offset, part->GPU_array + (maxp * 6), size, cudaMemcpyDeviceToHost));
+}
+
+
+
 /// Particle mover (CPU part that launch the GPU kernel).
 /// -----------------------------------------------------
-void mover_PC(struct particles *part, int is, struct parameters *param)
+void mover_PC(particles *part, int is, parameters *param)
 {
     std::cout << "***  MOVER with SUBCYCLYING "<< param->n_sub_cycles << " - species " << part->species_ID << " ***" << std::endl;
+    int num_blocks = (part->gpu_npmax + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-    // Copy particles to GPU.
-    CUDA_CHECK(cudaMemcpy(part->GPU_array, part->x, PARRSZ * part->npmax, cudaMemcpyHostToDevice));
+    // Move each particle with new fields (using mini-batches).
+    for (long offset = 0; offset < part->nop; offset += part->gpu_npmax) {
+        CopyParticlesToDevice(part, param, offset);
 
-    // Move each particle with new fields.
-    int num_blocks = (part->nop + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], gGpuField, gGpuGrid, gGpuParam);
-    cudaDeviceSynchronize();  // Make sure the particles were updated.
+        kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(offset, &gGpuPart[is], gGpuField, gGpuGrid, gGpuParam);
+        cudaDeviceSynchronize();  // Make sure the particles were updated.
 
-    // Copy particles back to CPU.
-    CUDA_CHECK(cudaMemcpy(part->x, part->GPU_array, PARRSZ * part->npmax, cudaMemcpyDeviceToHost));
+        CopyParticlesToHost(part, param, offset);
+    }
 }
 
 
@@ -453,6 +506,7 @@ void mover_PC(struct particles *part, int is, struct parameters *param)
 /// -------------------------------------------------------------
 void interpP2G(struct particles* part, struct interpDensSpecies* ids, int is, struct grid* grd)
 {
+    int num_blocks = (part->gpu_npmax + BLOCK_SIZE - 1) / BLOCK_SIZE;
     int size = grd->nxn * grd->nyn * grd->nzn * sizeof(FPfield);
 
     // Copy interpDensSpecies array to GPU.
@@ -468,13 +522,15 @@ void interpP2G(struct particles* part, struct interpDensSpecies* ids, int is, st
     CUDA_CHECK(cudaMemcpy(ids->pyz_GPU, ids->pyz_flat, size, cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(ids->pzz_GPU, ids->pzz_flat, size, cudaMemcpyHostToDevice));
 
-    // Copy particles to GPU.
-    CUDA_CHECK(cudaMemcpy(part->GPU_array, part->x, PARRSZ * part->npmax, cudaMemcpyHostToDevice));
+    // Interpolate each particle (using mini-batches).
+    for (long offset = 0; offset < part->nop; offset += part->gpu_npmax) {
+        CopyParticlesToDevice(part, param, offset);
 
-    // Interpolate each particle.
-    int num_blocks = (part->nop + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    kernel_interpP2G<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], &gGpuIDS[is], gGpuGrid);
-    cudaDeviceSynchronize();  // Make sure the particles were updated.
+        kernel_interpP2G<<<num_blocks, BLOCK_SIZE>>>(offset, &gGpuPart[is], &gGpuIDS[is], gGpuGrid);
+        cudaDeviceSynchronize();  // Make sure the particles were updated.
+
+        CopyParticlesToHost(part, param, offset);
+    }
 
     // Copy interpDensSpecies array back to CPU.
     CUDA_CHECK(cudaMemcpy(ids->rhon_flat, ids->rhon_GPU, size, cudaMemcpyDeviceToHost));
@@ -487,8 +543,5 @@ void interpP2G(struct particles* part, struct interpDensSpecies* ids, int is, st
     CUDA_CHECK(cudaMemcpy(ids->pxz_flat, ids->pxz_GPU, size, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(ids->pyy_flat, ids->pyy_GPU, size, cudaMemcpyDeviceToHost));
     CUDA_CHECK(cudaMemcpy(ids->pyz_flat, ids->pyz_GPU, size, cudaMemcpyDeviceToHost));
-    CUDA_CHECK(cudaMemcpy(ids->pzz_flat, ids->pzz_GPU, size, cudaMemcpyDeviceToHost));
-
-    // Copy particles back to CPU.
-    CUDA_CHECK(cudaMemcpy(part->x, part->GPU_array, PARRSZ * part->npmax, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(ids->pzz_flat, ids->pzz_GPU, size, cudaMemcpyDeviceToHost))
 }
