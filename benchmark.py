@@ -44,7 +44,7 @@ def run_sputniPIC(here, file):
 
     print("  Num. of particuls = %s" % results[0])
     print("  Tot. Sim Time (s) = %s" % results[1])
-    print("------------------------------------\n", flush=True)
+    print("------------------------------------", flush=True)
 
     return results
 
@@ -62,6 +62,8 @@ def main():
 
         for file in files:
             writer.writerow(run_sputniPIC(here, file))
+
+    print()
 
 
 if __name__ == "__main__":
