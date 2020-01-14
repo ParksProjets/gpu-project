@@ -28,7 +28,7 @@ def run_sputniPIC(here, file):
 
     print("\n------------------------------------")
     print("|| RUNNING SPUTNIPIC ON %s" % path.basename(file))
-    print("------------------------------------\n", flush=True)
+    print("------------------------------------", flush=True)
 
     prog = path.join(here, "bin", "sputniPIC.out")
     ps = sp.Popen([prog, file], stdout=sp.PIPE)
@@ -42,9 +42,9 @@ def run_sputniPIC(here, file):
         find_result(text, RE_INTERT, float)
     ]
 
-    print("    Number of particuls = %s" % results[0])
-    print("    Tot. Simulation Time (s) = %s" % results[1])
-    print("------------------------------------\n", flush=True)
+    print("  Num. of particuls = %s" % results[0])
+    print("  Tot. Sim Time (s) = %s" % results[1])
+    print("------------------------------------", flush=True)
 
     return results
 
@@ -62,6 +62,8 @@ def main():
 
         for file in files:
             writer.writerow(run_sputniPIC(here, file))
+
+    print()
 
 
 if __name__ == "__main__":
