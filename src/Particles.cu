@@ -154,7 +154,7 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
 
 
     // Allocate interpDensSpecies array.
-    CUDA_CHECK(cudaMalloc(&gGpuIDS, sizeof(GPU_interpDensSpecies) * param.ns));
+    CUDA_CHECK(cudaMalloc(&gGpuIDS, sizeof(GPU_interpDensSpecies) * param->ns));
 
     for (int is = 0; is < param->ns; is++) {
         ids[is].rhon_GPU = CudaAllocateMember(&gGpuIDS[is].rhon_flat, size);
@@ -349,7 +349,7 @@ __global__ void kernel_mover_PC(particles* part, EMfield* field, grid* grd, para
 
 /// Interpolation Particle --> Grid: This is for species (GPU kernel).
 /// ------------------------------------------------------------------
-__global__ void kernel_ interpP2G(particles *part, interpDensSpecies *ids, grid *grd)
+__global__ void kernel_interpP2G(particles *part, GPU_interpDensSpecies *ids, grid *grd)
 {
     // Index of the particule that is being updated.
     auto i = blockDim.x * blockIdx.x + threadIdx.x;
@@ -473,7 +473,7 @@ void interpP2G(struct particles* part, struct interpDensSpecies* ids, int is, st
 
     // Interpolate each particle.
     int num_blocks = (part->nop + BLOCK_SIZE - 1) / BLOCK_SIZE;
-    kernel_mover_PC<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], &gGpuIDS[is], gGpuGrid);
+    kernel_interpP2G<<<num_blocks, BLOCK_SIZE>>>(&gGpuPart[is], &gGpuIDS[is], gGpuGrid);
     cudaDeviceSynchronize();  // Make sure the particules were updated.
 
     // Copy interpDensSpecies array back to CPU.

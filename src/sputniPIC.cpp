@@ -69,8 +69,8 @@ int main(int argc, char **argv)
         particle_allocate(&param, &part[is], is);
 
     // Initialization.
-    initGEM(&param,&grd,&field,&field_aux,part,ids);
-    particle_init_gpu(part, &grd, &param, &field);
+    initGEM(&param, &grd, &field, &field_aux, part, ids);
+    particle_init_gpu(part, &grd, &param, &field, ids);
 
 
     // Count total number of particules.
