@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         // Interpolate species.
         for (int is = 0; is < param.ns; is++)
-            interpP2G(&part[is], &ids[is], &grd);
+            interpP2G(&part[is], &ids[is], is, &grd);
         // Apply BC to interpolated densities.
         for (int is = 0; is < param.ns; is++)
             applyBCids(&ids[is], &grd, &param);
