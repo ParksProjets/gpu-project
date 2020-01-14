@@ -1,40 +1,54 @@
-# From https://x.momo86.net/?p=29
+# File configuration.
+SRCDIR ?= src
+OBJDIR ?= obj
+BINDIR ?= bin
+DATADIR ?= data
+TARGET = sputniPIC.out
 
-CXX=g++
-CXXFLAGS=-std=c++11 -I./include -O3 -g -Xcompiler -Wall
+# GNU and CUDA tools.
+CXX ?= g++
+CXXFLAGS ?= -std=c++11 -I./include -O3 -g -Xcompiler -Wall
 
-NVCC=nvcc
-ARCH=sm_30
-NVCCFLAGS= -I./include -arch=$(ARCH) -std=c++11 -O3 -g -Xcompiler -Wall --compiler-bindir=$(CXX)
+NVCC ?= nvcc
+ARCH ?= sm_37
+NVCCFLAGS = -I./include -arch=$(ARCH) -std=c++11 -O3 -g -G -Xcompiler -Wall --compiler-bindir=$(CXX)
 
-SRCDIR=src
-SRCS=$(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
+# Find source files and map to objects.
+SRCS = $(shell find $(SRCDIR) -name '*.cu' -o -name '*.cpp')
+OBJS := $(subst $(SRCDIR),$(OBJDIR),$(SRCS))
+OBJS := $(subst .cpp,.o,$(OBJS))
+OBJS := $(subst .cu,.o,$(OBJS))
 
-OBJDIR=src
-OBJS=$(subst $(SRCDIR),$(OBJDIR), $(SRCS))
-OBJS:=$(subst .cpp,.o,$(OBJS))
-OBJS:=$(subst .cu,.o,$(OBJS))
 
-BIN := ./bin
-TARGET=sputniPIC.out
+# Makefile targets.
+.PHONY: all run benchmark clean
+all: $(BINDIR)/$(TARGET)
 
-all: dir $(BIN)/$(TARGET)
 
-dir: ${BIN}
-  
-${BIN}:
-	mkdir -p $(BIN)
+$(BINDIR):
+	mkdir -p $(BINDIR)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+$(DATADIR):
+	mkdir -p $(DATADIR)
 
-$(BIN)/$(TARGET): $(OBJS)
+
+$(BINDIR)/$(TARGET): $(OBJS) | $(BINDIR)
 	$(NVCC) $(NVCCFLAGS) $+ -o $@
 
-$(SRCDIR)/%.o: $(SRCDIR)/%.cu
+$(OBJDIR)/%.o: $(SRCDIR)/%.cu
 	$(NVCC) $(NVCCFLAGS) $< -c -o $@
 
-$(OBJDIR)/%.o: $(SRCDIR)/%.cpp
-	[ -d $(OBJDIR) ] || mkdir $(OBJDIR)
+$(OBJDIR)/%.o: $(SRCDIR)/%.cpp | $(OBJDIR)
 	$(NVCC) $(CXXFLAGS) $< -c -o $@
+
+
+run: $(BINDIR)/$(TARGET) | $(DATADIR)
+	$< inputfiles/GEM_2D.inp
+
+benchmark: $(BINDIR)/$(TARGET) | $(DATADIR)
+	python3 benchmark.py
 
 clean:
 	rm -rf $(OBJS)
-	rm -rf $(TARGET)
+	rm -f $(BINDIR)/$(TARGET)

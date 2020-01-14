@@ -73,6 +73,14 @@ int main(int argc, char **argv){
     
     // Initialization
     initGEM(&param,&grd,&field,&field_aux,part,ids);
+
+
+    // Count total number of particules.
+    long long count = 0;
+    for (int is = 0; is < param.ns; is++)
+        count += part[is].nop;
+
+    std::cout << "++ TOTAL NUMBER OF PARTICULES: " << count << std::endl;
     
     
     // **********************************************************//

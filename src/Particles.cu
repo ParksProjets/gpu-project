@@ -115,10 +115,10 @@ int mover_PC(struct particles* part, struct EMfield* field, struct grid* grd, st
                 xi[1]   = grd->XN[ix][iy][iz] - part->x[i];
                 eta[1]  = grd->YN[ix][iy][iz] - part->y[i];
                 zeta[1] = grd->ZN[ix][iy][iz] - part->z[i];
-                for (int i = 0; i < 2; i++)
-                    for (int j = 0; j < 2; j++)
-                        for (int k = 0; k < 2; k++)
-                            weight[i][j][k] = xi[i] * eta[j] * zeta[k] * grd->invVOL;
+                for (int ii = 0; ii < 2; ii++)
+                    for (int jj = 0; jj < 2; jj++)
+                        for (int kk = 0; kk < 2; kk++)
+                            weight[ii][jj][kk] = xi[ii] * eta[jj] * zeta[kk] * grd->invVOL;
                 
                 // set to zero local electric and magnetic field
                 Exl=0.0, Eyl = 0.0, Ezl = 0.0, Bxl = 0.0, Byl = 0.0, Bzl = 0.0;
@@ -262,130 +262,116 @@ void interpP2G(struct particles* part, struct interpDensSpecies* ids, struct gri
         eta[1]  = grd->YN[ix][iy][iz] - part->y[i];
         zeta[1] = grd->ZN[ix][iy][iz] - part->z[i];
         
-        // calculate the weights for different nodes
+        // Calculate the weights for different nodes.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     weight[ii][jj][kk] = part->q[i] * xi[ii] * eta[jj] * zeta[kk] * grd->invVOL;
-        
-        //////////////////////////
-        // add charge density
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->rhon[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        ////////////////////////////
-        // add current density - Jx
+
+        // Add charge density.
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->rhon[ix - ii][iy - jj][iz - kk] += weight[ii][jj][kk] * grd->invVOL;
+
+        // Add current density - Jx.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->u[i] * weight[ii][jj][kk];
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->Jx[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
         
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->Jx[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
         
-        
-        ////////////////////////////
-        // add current density - Jy
+        // Add current density - Jy.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->v[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->Jy[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        
-        ////////////////////////////
-        // add current density - Jz
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->Jy[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add current density - Jz.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->w[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->Jz[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        ////////////////////////////
-        // add pressure pxx
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->Jz[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add pressure pxx.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->u[i] * part->u[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->pxx[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        ////////////////////////////
-        // add pressure pxy
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->pxx[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add pressure pxy.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->u[i] * part->v[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->pxy[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        
-        /////////////////////////////
-        // add pressure pxz
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->pxy[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add pressure pxz.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->u[i] * part->w[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->pxz[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        /////////////////////////////
-        // add pressure pyy
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->pxz[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add pressure pyy.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->v[i] * part->v[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->pyy[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->pyy[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
         
-        
-        /////////////////////////////
-        // add pressure pyz
+        // Add pressure pyz.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->v[i] * part->w[i] * weight[ii][jj][kk];
-        for (int i = 0; i < 2; i++)
-            for (int j = 0; j < 2; j++)
-                for (int k = 0; k < 2; k++)
-                    ids->pyz[ix - i][iy - j][iz - k] += weight[i][j][k] * grd->invVOL;
-        
-        
-        /////////////////////////////
-        // add pressure pzz
+
+        for (int ii = 0; ii < 2; ii++)
+            for (int jj = 0; jj < 2; jj++)
+                for (int kk = 0; kk < 2; kk++)
+                    ids->pyz[ix - ii][iy - jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
+
+        // Add pressure pzz.
         for (int ii = 0; ii < 2; ii++)
             for (int jj = 0; jj < 2; jj++)
                 for (int kk = 0; kk < 2; kk++)
                     temp[ii][jj][kk] = part->w[i] * part->w[i] * weight[ii][jj][kk];
-        for (int i=0; i < 2; i++)
-            for (int j=0; j < 2; j++)
-                for(int k=0; k < 2; k++)
-                    ids->pzz[ix -i][iy -j][iz - k] += weight[i][j][k] * grd->invVOL;
-    
+
+        for (int ii=0; ii < 2; ii++)
+            for (int jj=0; jj < 2; jj++)
+                for(int kk=0; kk < 2; kk++)
+                    ids->pzz[ix -ii][iy -jj][iz - kk] += temp[ii][jj][kk] * grd->invVOL;
     }
-   
 }
