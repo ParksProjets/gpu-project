@@ -23,7 +23,7 @@ static_assert(sizeof(FPpart) == sizeof(FPinterp));
 
 // The maximum GPU memory that can be used for particules. Set to 0 for the
 // maximum phisical limit.
-#define GPU_MEM_PART  (8 * 1024 * 1024)  // 4GB
+#define GPU_MEM_PART  (2 * 1024 * 1024)  // 2GB
 
 
 // Pointer allocated to be used by the CPU.
