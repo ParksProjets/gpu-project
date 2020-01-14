@@ -23,7 +23,7 @@ static_assert(sizeof(FPpart) == sizeof(FPinterp));
 
 // The maximum GPU memory that can be used for particules. Set to 0 for the
 // maximum phisical limit.
-#define GPU_MEM_PART  (2 * 1024 * 1024)  // 2GB
+#define GPU_MEM_PART  (8 * 1024 * 1024)  // 4GB
 
 
 // Pointer allocated to be used by the CPU.
@@ -176,9 +176,8 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     }
 
 
-    // Allocate and copy particle array.
+    // Allocate particle array.
     CUDA_CHECK(cudaMalloc(&gGpuPart, sizeof(particles) * param->ns));
-    CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param->ns, cudaMemcpyHostToDevice));
 
     // Get memory info: we can use it to know how many particles fit to GPU
     // memory.
@@ -205,7 +204,13 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
 
         int batches = ((part[is].nop + maxp - 1) / maxp);
         std::cout << "     --> Species " << is << " needs " << batches << " batches" << std::endl;
+    }
 
+    // Copy particle array as it's now complete.
+    CUDA_CHECK(cudaMemcpy(gGpuPart, part, sizeof(particles) * param->ns, cudaMemcpyHostToDevice));
+
+    // Adjust pointer to particule components.
+    for (int is = 0; is < param->ns; is++) {
         CudaWritePointer(&gGpuPart[is].x, array + (maxp * 0));
         CudaWritePointer(&gGpuPart[is].y, array + (maxp * 1));
         CudaWritePointer(&gGpuPart[is].z, array + (maxp * 2));
@@ -225,8 +230,8 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
 __global__ void kernel_mover_PC(size_t offset, particles* part, EMfield* field, grid* grd, parameters* param)
 {
     // Index of the particle that is being updated.
-    auto i = blockDim.x * blockIdx.x + threadIdx.x - offset;
-    if (i >= part->gpu_npmax)
+    size_t i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i >= (size_t)part->gpu_npmax || (i + offset) >= (size_t)part->nop)
         return;
 
     // Auxiliary variables.
@@ -380,9 +385,9 @@ __global__ void kernel_mover_PC(size_t offset, particles* part, EMfield* field, 
 /// ------------------------------------------------------------------
 __global__ void kernel_interpP2G(size_t offset, particles *part, GPU_interpDensSpecies *ids, grid *grd)
 {
-    // Index of the particle that is being updated.
-    auto i = blockDim.x * blockIdx.x + threadIdx.x - offset;
-    if (i >= part->gpu_npmax)
+    // Index of the particle that is being used.
+    size_t i = blockDim.x * blockIdx.x + threadIdx.x;
+    if (i >= (size_t)part->gpu_npmax || (i + offset) >= (size_t)part->nop)
         return;
 
     // Local variables.
