@@ -8,10 +8,10 @@ import re
 
 
 # CDV column names.
-COLUMNS = ["Num. particules", "Tot. Simulation Time", "Mover Time / Cycle", "Interp. Time / Cycle"]
+COLUMNS = ["Num. particles", "Tot. Simulation Time", "Mover Time / Cycle", "Interp. Time / Cycle"]
 
 # Regex for getting results.
-RE_NOP    = re.compile(r"^\+\+ TOTAL NUMBER OF PARTICULES: (\d+)", re.M)
+RE_NOP    = re.compile(r"^\+\+ TOTAL NUMBER OF PARTICLES: (\d+)", re.M)
 RE_SIMTOT = re.compile(r"^   Tot. Simulation Time \(s\) = ([0-9.-]+)", re.M)
 RE_MOVT   = re.compile(r"^   Mover Time / Cycle   \(s\) = ([0-9.-]+)", re.M)
 RE_INTERT = re.compile(r"^   Interp. Time / Cycle \(s\) = ([0-9.-]+)", re.M)
@@ -42,7 +42,7 @@ def run_sputniPIC(here, file):
         find_result(text, RE_INTERT, float)
     ]
 
-    print("  Num. of particuls = %s" % results[0])
+    print("  Num. of particles = %s" % results[0])
     print("  Tot. Sim Time (s) = %s" % results[1])
     print("------------------------------------", flush=True)
 

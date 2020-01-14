@@ -73,12 +73,12 @@ int main(int argc, char **argv)
     particle_init_gpu(part, &grd, &param, &field, ids);
 
 
-    // Count total number of particules.
+    // Count total number of particles.
     long long count = 0;
     for (int is = 0; is < param.ns; is++)
         count += part[is].nop;
 
-    std::cout << "++ TOTAL NUMBER OF PARTICULES: " << count << std::endl;
+    std::cout << "++ TOTAL NUMBER OF PARTICLES: " << count << std::endl;
 
 
     // ******************************************************** //
