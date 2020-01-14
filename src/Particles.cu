@@ -21,6 +21,10 @@ static_assert(sizeof(FPpart) == sizeof(FPinterp));
 #define BLOCK_SIZE 32
 #define PARRSZ (sizeof(FPpart) * 7)
 
+// The maximum GPU memory that can be used. Note that this number must not be
+// too small. Set to 0 for the phisical limit.
+#define LIMIT_GPU_MEM  (4 * 1024 * 1024)  // 4GB
+
 
 // Pointer allocated to be used by the CPU.
 struct grid *gGpuGrid;
@@ -181,7 +185,12 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     size_t free_size, total_size;
     CUDA_CHECK(cudaMemGetInfo(&free_size, &total_size));
 
+    // GPU memory can be limited by developer.
+    if (LIMIT_GPU_MEM != 0)
+        free_size = LIMIT_GPU_MEM - (total_size - free_size);
+
     free_size -= 1024;  // Make sure there is space for aligment.
+
     size_t maxp = std::min(free_size / PARRSZ, MaxNumberParticules(part, param));
     std::cout << "++ Max number of particles on GPU = " << (free_size / PARRSZ) << std::endl;
 
