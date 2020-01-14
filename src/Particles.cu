@@ -191,7 +191,7 @@ void particle_init_gpu(particles *part, grid *grd, parameters *param, EMfield *f
     CUDA_CHECK(cudaMalloc(&array, PARRSZ * maxp));
 
     for (int is = 0; is < param->ns; is++) {
-        part[is].gpu_npmax = std::min(part[is].nop, maxp);
+        part[is].gpu_npmax = std::min((size_t)part[is].nop, maxp);
         part[is].GPU_array = array;
 
         CudaWritePointer(&gGpuPart[is].x, array + (maxp * 0));
@@ -504,7 +504,7 @@ void mover_PC(particles *part, int is, parameters *param)
 
 /// Interpolation Particle (CPU part that launch the GPU kernel).
 /// -------------------------------------------------------------
-void interpP2G(struct particles* part, struct interpDensSpecies* ids, int is, struct grid* grd)
+void interpP2G(particles* part, interpDensSpecies* ids, int is, grid* grd, parameters *param)
 {
     int num_blocks = (part->gpu_npmax + BLOCK_SIZE - 1) / BLOCK_SIZE;
     int size = grd->nxn * grd->nyn * grd->nzn * sizeof(FPfield);

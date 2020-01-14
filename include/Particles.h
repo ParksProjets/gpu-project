@@ -19,7 +19,7 @@ struct particles {
     /** number of particles of this species on this domain */
     long nop;
     /** maximum number of particles for a single batch */
-    long gpu_npmax;
+    size_t gpu_npmax;
     
     /** Electron and ions have different number of iterations: ions moves slower than ions */
     int NiterMover;
@@ -64,7 +64,8 @@ void particle_init_gpu(struct particles*, struct grid*, struct parameters*, stru
 void mover_PC(struct particles*, int is, struct parameters*);
 
 /** Interpolation Particle --> Grid: This is for species */
-void interpP2G(struct particles*, struct interpDensSpecies*, int is, struct grid*);
+void interpP2G(struct particles*, struct interpDensSpecies*, int is, struct grid*,
+    struct parameters *param);
 
 
 // Find the maximum number of particles for a single species.
