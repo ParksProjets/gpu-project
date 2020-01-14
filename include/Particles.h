@@ -68,9 +68,9 @@ void interpP2G(struct particles*, struct interpDensSpecies*, int is, struct grid
 
 
 // Find the maximum number of particles for a single species.
-inline long MaxNumberParticules(struct particles *part, struct parameters *param)
+inline size_t MaxNumberParticules(struct particles *part, struct parameters *param)
 {
-    long max = 0;
+    size_t max = 0;
     for (int is = 0; is < param->ns; is++) {
         if (part[is].npmax > max)
             max = part[is].npmax;

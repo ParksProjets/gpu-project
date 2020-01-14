@@ -52,7 +52,7 @@ struct parameters {
     /** number of actual species */
     int ns;
     /** maximum number of particles for a single batch */
-    long gpu_npmax;
+    size_t gpu_npmax;
     
     // This for maximum NS_MAX species. To have more increase the array size in NS_MAX
     /** number of particles per cell - X direction */
